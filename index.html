@@ -1,0 +1,78 @@
+Exit code: 0
+Wall time: 1.4 seconds
+Output:
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="敺璈?GPU ??SuperPOD ??NVIDIA ?冽ㄖ撖虫??亥??啣?" />
+  <title>NVIDIA Full-Stack Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+TC:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="?擐?"><span class="brand-mark">N</span><span>NVIDIA FULL-STACK LAB</span></a>
+    <nav aria-label="銝餉?撠汗"><a href="#map">?亥??啣?</a><a href="#projects">撖虫?撠?</a><a href="#diagnostics">閮箸瘚?</a></nav>
+    <button id="theme-toggle" class="icon-button" aria-label="????璅∪?">??/button>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">GPU ACCELERATION 繚 SYSTEMS 繚 NETWORK 繚 DATA</p>
+        <h1>銝??芾??賢?頝 GPU??br><em>霈璇??楝敺?/em>? GPU??/h1>
+        <p class="hero-lead">敺?CUDA kernel??暺鈭????InfiniBand ??RAPIDS??剖?賢?祕雿?獢?撱箇? NVIDIA AI ?箇?閮剜???渡頂蝯梯???/p>
+        <div class="hero-actions"><a class="button primary" href="#projects">??撖虫? ??/a><a class="button ghost" href="#map">?亦??冽ㄖ?嗆?</a></div>
+        <div class="metrics"><div><strong>06</strong><span>撖虫?撠?</span></div><div><strong>09</strong><span>?銵惜蝝?/span></div><div><strong>01</strong><span>蝡臬蝡航楝敺?/span></div></div>
+      </div>
+      <div class="hero-viz" aria-label="GPU 鞈?瘚內??">
+        <div class="viz-label">LIVE DATA PATH</div>
+        <div class="node storage"><span>01</span><b>STORAGE</b><small>GDS 繚 NVMe</small></div>
+        <div class="flow-line l1"></div>
+        <div class="node network"><span>02</span><b>NETWORK</b><small>RDMA 繚 IB</small></div>
+        <div class="flow-line l2"></div>
+        <div class="node gpu"><span>03</span><b>GPU MEMORY</b><small>CUDA 繚 RAPIDS</small></div>
+        <div class="pulse p1"></div><div class="pulse p2"></div>
+        <p class="viz-note">CPU 蝞∠??批頝臬?<br>鞈?韏?DMA 擃楝敺?/p>
+      </div>
+    </section>
+
+    <section id="map" class="section map-section">
+      <div class="section-heading"><p class="eyebrow">SYSTEM MAP</p><h2>銋惜 NVIDIA ?瑽?/h2><p>暺隞颱?撅歹??亦?摰?湧?蝟餌絞銝剔?閫??/p></div>
+      <div class="stack-map" id="stack-map"></div>
+      <aside class="layer-detail" id="layer-detail" aria-live="polite"></aside>
+    </section>
+
+    <section id="projects" class="section projects-section">
+      <div class="section-heading row"><div><p class="eyebrow">HANDS-ON PROJECTS</p><h2>?剖?獢??惜撱箇??賢?</h2></div><div class="progress-wrap"><span id="progress-label">0 / 6 摰?</span><div class="progress"><i id="progress-bar"></i></div></div></div>
+      <div class="filters" role="group" aria-label="撠?蝭拚">
+        <button class="filter active" data-filter="all">?券</button><button class="filter" data-filter="single">?格?</button><button class="filter" data-filter="cluster">?ａ?</button><button class="filter" data-filter="app">?</button>
+        <label class="search"><span>??/span><input id="project-search" type="search" placeholder="?? CUDA?DMA?APIDS?? aria-label="??撠?"></label>
+      </div>
+      <div class="project-grid" id="project-grid"></div>
+    </section>
+
+    <section id="diagnostics" class="section diagnostics-section">
+      <div class="section-heading"><p class="eyebrow">BOTTLENECK FINDER</p><h2>GPU ?箔?暻澆蝑?</h2><p>敺鞊⊿?憪?瘝輯??楝敺?箇?甇??詻?/p></div>
+      <div class="diagnostic-layout">
+        <div class="symptoms" id="symptoms"></div>
+        <div class="diagnosis" id="diagnosis" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="section principles">
+      <p class="eyebrow">DESIGN PRINCIPLES</p><h2>?冽ㄖ?芸??璇???/h2>
+      <ol><li><b>鞈?擏?</b><span>?湔挾 pipeline ? GPU</span></li><li><b>?寞活?唾撓</b><span>?文像????鋆賣???/span></li><li><b>??芸?</b><span>?Ⅱ隤?PCIe?UMA?VLink</span></li><li><b>蝬脰楝?寥?</b><span>靘?撖漲??Ethernet?oCE?B</span></li><li><b>?湧楝敺?/b><span>閰摯 GPUDirect RDMA ??GDS</span></li><li><b>???游?</b><span>??GPU ??憭?GPU ??憭?暺?/span></li></ol>
+    </section>
+  </main>
+
+  <dialog id="project-dialog"><button class="dialog-close" aria-label="??">?</button><div id="dialog-content"></div></dialog>
+  <footer><div class="brand"><span class="brand-mark">N</span><span>NVIDIA FULL-STACK LAB</span></div><p>Independent educational project. NVIDIA product names are trademarks of NVIDIA Corporation.</p><a href="#top">??垢 ??/a></footer>
+  <script src="app.js"></script>
+</body>
+</html>
+
