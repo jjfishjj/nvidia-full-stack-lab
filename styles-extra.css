@@ -1,0 +1,21 @@
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.launch-project {
+  color: var(--green2);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.open-project {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.open-project:hover,
+.launch-project:hover {
+  color: var(--text);
+}
