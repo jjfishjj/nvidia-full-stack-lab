@@ -1,0 +1,38 @@
+name: NVIDIA full-stack baseline
+on:
+  workflow_dispatch:
+    inputs:
+      pod_gpu_count:
+        description: Planned GPU count for the POD report
+        default: '256'
+      theoretical_gbps:
+        description: Expected NCCL bus bandwidth in GB/s
+        default: '200'
+jobs:
+  baseline:
+    runs-on: [self-hosted, linux, x64, gpu, nvidia]
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with: {repository: jjfishjj/cuda-data-residency-lab, path: projects/cuda-data-residency-lab}
+      - uses: actions/checkout@v4
+        with: {repository: jjfishjj/gpu-system-diagnostics-lab, path: projects/gpu-system-diagnostics-lab}
+      - uses: actions/checkout@v4
+        with: {repository: jjfishjj/pod-architecture-planner, path: projects/pod-architecture-planner}
+      - uses: actions/checkout@v4
+        with: {repository: jjfishjj/rdma-nccl-network-lab, path: projects/rdma-nccl-network-lab}
+      - uses: actions/checkout@v4
+        with: {repository: jjfishjj/rapids-gpu-pipeline, path: projects/rapids-gpu-pipeline}
+      - uses: actions/checkout@v4
+        with: {repository: jjfishjj/dask-multigpu-scaling-lab, path: projects/dask-multigpu-scaling-lab}
+      - name: Run all baselines
+        env:
+          POD_GPU_COUNT: ${{ inputs.pod_gpu_count }}
+          THEORETICAL_GBPS: ${{ inputs.theoretical_gbps }}
+        run: bash runner/run-baseline.sh projects baseline-results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nvidia-full-stack-baseline-${{ github.run_id }}
+          path: baseline-results
