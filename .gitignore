@@ -1,3 +1,9 @@
 __pycache__/
 *.py[cod]
 baseline-results/
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+terraform.tfvars
+crash.log

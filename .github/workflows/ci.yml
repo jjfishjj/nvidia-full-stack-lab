@@ -9,3 +9,12 @@ jobs:
         with: {python-version: '3.12'}
       - run: python -m unittest discover -s runner/tests -v
       - run: python -m py_compile runner/preflight.py runner/render_report.py
+      - name: Validate cloud runner shell scripts
+        run: bash -n infra/gcp/scripts/gcp-runner.sh infra/gcp/startup/gpu-runner.sh
+      - uses: hashicorp/setup-terraform@v3
+      - name: Validate GCP foundation
+        working-directory: infra/gcp/bootstrap
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false
+          terraform validate

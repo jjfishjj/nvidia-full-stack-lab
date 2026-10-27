@@ -25,4 +25,10 @@
 
 本機目前只偵測到 Intel UHD 620，因此不具備 GPU 實測條件；請在 NVIDIA Linux 節點執行 `runner/preflight.py`，通過後再註冊 Runner。
 
+## GCP 台灣 GPU Runner
+
+- [`infra/gcp/`](infra/gcp/)：GitHub OIDC、一次性 GPU Runner、Secret Manager 與失敗時自動清理。
+- `GCP GPU full-stack baseline` workflow：預設使用台灣 `asia-east1-a` 的單卡 L4；經 Environment 核准後可改選 `asia-east1-c` 的 8×H100 A3 High。
+- 雲端 Runner 預設不會由 push 或 pull request 啟動，且基礎設施程式碼本身不會建立 GPU VM。完整設定順序請參閱 [`infra/gcp/README.md`](infra/gcp/README.md)。
+
 本網站為獨立教育用途，NVIDIA 產品名稱為 NVIDIA Corporation 的商標。

@@ -1,0 +1,22 @@
+{
+  "l4": {
+    "description": "Low-risk single-GPU MVP in Taiwan",
+    "zone": "asia-east1-a",
+    "machine_type": "g2-standard-4",
+    "accelerator": "type=nvidia-l4,count=1",
+    "gpu_count": 1,
+    "gpu_model": "NVIDIA L4",
+    "timeout_minutes": 60,
+    "labels": ["gcp", "l4"]
+  },
+  "h100": {
+    "description": "Manually approved multi-GPU NVLink/NCCL tier",
+    "zone": "asia-east1-c",
+    "machine_type": "a3-highgpu-8g",
+    "accelerator": null,
+    "gpu_count": 8,
+    "gpu_model": "NVIDIA H100 80GB",
+    "timeout_minutes": 90,
+    "labels": ["gcp", "h100", "nvlink", "multigpu"]
+  }
+}

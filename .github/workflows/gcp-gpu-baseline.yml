@@ -1,0 +1,156 @@
+name: GCP GPU full-stack baseline
+
+on:
+  workflow_dispatch:
+    inputs:
+      runner_tier:
+        description: GPU tier (L4 is the low-risk default)
+        required: true
+        default: l4
+        type: choice
+        options: [l4, h100]
+      spot:
+        description: Use an interruptible Spot VM (recommended only after on-demand validation)
+        required: true
+        default: false
+        type: boolean
+      pod_gpu_count:
+        description: Planned GPU count for the POD report
+        required: true
+        default: '256'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: gcp-gpu-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  INSTANCE_NAME: gha-gpu-${{ github.run_id }}-${{ github.run_attempt }}
+  SECRET_ID: gha-runner-${{ github.run_id }}-${{ github.run_attempt }}
+  UNIQUE_LABEL: run-${{ github.run_id }}-${{ github.run_attempt }}
+
+jobs:
+  provision:
+    name: Provision approved GPU runner
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: gcp-gpu-approval
+    outputs:
+      runner_labels: ${{ steps.labels.outputs.runner_labels }}
+      zone: ${{ steps.profile.outputs.zone }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Select the reviewed runner profile
+        id: profile
+        shell: bash
+        run: |
+          if [[ "${{ inputs.runner_tier }}" == "h100" ]]; then
+            echo "zone=asia-east1-c" >> "$GITHUB_OUTPUT"
+          else
+            echo "zone=asia-east1-a" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Create one-use runner registration token
+        id: token
+        env:
+          GH_TOKEN: ${{ secrets.GPU_RUNNER_ADMIN_TOKEN }}
+        shell: bash
+        run: |
+          token="$(gh api --method POST "repos/${GITHUB_REPOSITORY}/actions/runners/registration-token" --jq .token)"
+          echo "::add-mask::$token"
+          printf '%s' "$token" > "$RUNNER_TEMP/runner-token"
+      - name: Create GPU VM
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_RUNNER_SERVICE_ACCOUNT: ${{ vars.GCP_RUNNER_SERVICE_ACCOUNT }}
+          GCP_IMAGE_FAMILY: ${{ vars.GCP_IMAGE_FAMILY }}
+          GCP_IMAGE_PROJECT: ${{ vars.GCP_IMAGE_PROJECT }}
+          RUNNER_TOKEN_FILE: ${{ runner.temp }}/runner-token
+        shell: bash
+        run: |
+          args=(create "${{ inputs.runner_tier }}" "$INSTANCE_NAME" "$SECRET_ID" "$UNIQUE_LABEL")
+          if [[ "${{ inputs.spot }}" == "true" ]]; then args+=(--spot); fi
+          bash infra/gcp/scripts/gcp-runner.sh "${args[@]}"
+      - name: Publish unique runner labels
+        id: labels
+        shell: bash
+        run: |
+          printf 'runner_labels=["self-hosted","linux","x64","gpu","nvidia","gcp","%s","%s"]\n' \
+            "${{ inputs.runner_tier }}" "$UNIQUE_LABEL" >> "$GITHUB_OUTPUT"
+
+  baseline:
+    name: Run six-project GPU baseline
+    needs: provision
+    runs-on: ${{ fromJSON(needs.provision.outputs.runner_labels) }}
+    timeout-minutes: ${{ inputs.runner_tier == 'h100' && 90 || 60 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with: {repository: jjfishjj/cuda-data-residency-lab, path: projects/cuda-data-residency-lab}
+      - uses: actions/checkout@v4
+        with: {repository: jjfishjj/gpu-system-diagnostics-lab, path: projects/gpu-system-diagnostics-lab}
+      - uses: actions/checkout@v4
+        with: {repository: jjfishjj/pod-architecture-planner, path: projects/pod-architecture-planner}
+      - uses: actions/checkout@v4
+        with: {repository: jjfishjj/rdma-nccl-network-lab, path: projects/rdma-nccl-network-lab}
+      - uses: actions/checkout@v4
+        with: {repository: jjfishjj/rapids-gpu-pipeline, path: projects/rapids-gpu-pipeline}
+      - uses: actions/checkout@v4
+        with: {repository: jjfishjj/dask-multigpu-scaling-lab, path: projects/dask-multigpu-scaling-lab}
+      - name: Run all baselines
+        env:
+          POD_GPU_COUNT: ${{ inputs.pod_gpu_count }}
+          THEORETICAL_GBPS: ${{ inputs.runner_tier == 'h100' && '450' || '64' }}
+        run: bash runner/run-baseline.sh projects baseline-results
+      - name: Collect ephemeral runner diagnostics
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p baseline-results/runner-diagnostics
+          cp /var/log/github-gpu-runner.log baseline-results/runner-diagnostics/startup.log 2>/dev/null || true
+          cp -R /opt/actions-runner/_diag baseline-results/runner-diagnostics/actions-runner 2>/dev/null || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gcp-${{ inputs.runner_tier }}-baseline-${{ github.run_id }}
+          path: baseline-results
+
+  cleanup:
+    name: Always remove GPU resources
+    if: always() && needs.provision.result != 'skipped'
+    needs: [provision, baseline]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOYER_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Capture VM serial log before deletion
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+        shell: bash
+        run: |
+          zone="asia-east1-a"
+          if [[ "${{ inputs.runner_tier }}" == "h100" ]]; then zone="asia-east1-c"; fi
+          gcloud compute instances get-serial-port-output "$INSTANCE_NAME" \
+            --project "$GCP_PROJECT_ID" --zone "$zone" > gcp-startup-serial.log 2>&1 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: gcp-runner-control-log-${{ github.run_id }}
+          path: gcp-startup-serial.log
+      - name: Delete VM and one-use secret
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+          GCP_RUNNER_SERVICE_ACCOUNT: ${{ vars.GCP_RUNNER_SERVICE_ACCOUNT }}
+        run: bash infra/gcp/scripts/gcp-runner.sh delete "${{ inputs.runner_tier }}" "$INSTANCE_NAME" "$SECRET_ID" "$UNIQUE_LABEL"
